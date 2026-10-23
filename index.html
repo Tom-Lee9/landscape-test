@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Alpine Lake VR</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1218; color: #eef3f6;
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  canvas { display: block; position: fixed; inset: 0; }
+  .panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 24px; border-radius: 18px;
+    background: rgba(12, 22, 30, 0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.15); text-align: center; }
+  h1 { margin: 0 0 4px; font-size: 28px; font-weight: 600; letter-spacing: 0.5px; }
+  .sub { margin: 0 0 20px; opacity: 0.75; font-size: 14px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .panel button { display: block; width: 100%; margin: 10px 0; padding: 14px; border-radius: 12px; border: 0;
+    background: rgba(255,255,255,0.14); font-size: 18px; }
+  .panel button:first-of-type { background: #e9f1f5; color: #10202a; font-weight: 600; }
+  .panel button:disabled { opacity: 0.4; }
+  #status { min-height: 1.4em; font-size: 13px; opacity: 0.8; margin: 8px 0 0; }
+  label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 14px 0; text-align: left; font-size: 15px; }
+  input[type=range] { width: 100%; }
+  .row { display: block; } .row span { float: right; opacity: 0.75; }
+  select { font: inherit; padding: 4px 8px; border-radius: 8px; }
+  .note { font-size: 12px; opacity: 0.65; text-align: left; margin: 4px 0 0; }
+  #hud button { position: fixed; z-index: 5; border: 0; border-radius: 50%; width: 44px; height: 44px; font-size: 20px;
+    background: rgba(0,0,0,0.35); }
+  #exit { top: calc(12px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); }
+  #mute { top: calc(12px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); }
+  #hud #walk { width: auto; height: auto; border-radius: 40px; padding: 18px 26px; font-size: 17px;
+    bottom: calc(24px + env(safe-area-inset-bottom)); right: calc(24px + env(safe-area-inset-right)); background: rgba(0,0,0,0.4); }
+  #fps { position: fixed; z-index: 5; top: 18px; left: 50%; transform: translateX(-50%); font: 12px monospace; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; }
+  body.vr #walk { display: none; }
+  body.vr #exit, body.vr #mute { width: 32px; height: 32px; font-size: 14px; opacity: 0.6; }
+  body.vr #exit { left: calc(50% - 40px); } body.vr #mute { right: calc(50% - 40px); }
+  #divider { display: none; position: fixed; z-index: 4; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #000; }
+  body.vr #divider { display: block; }
+  #rotate { display: none; position: fixed; inset: 0; z-index: 10; background: #0b1218; align-items: center; justify-content: center; text-align: center; padding: 32px; font-size: 20px; }
+  @media (orientation: portrait) { body.vr #rotate { display: flex; } }
+  #toast, #toast2 { position: fixed; z-index: 6; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    width: max-content; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 12px; background: rgba(0,0,0,0.55);
+    font-size: 14px; text-align: center; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+  #toast.show, #toast2.show { opacity: 1; }
+  #toast2 { display: none; }
+  body.vr #toast, body.vr #toast2 { display: block; bottom: 30%; max-width: 40vw; }
+  body.vr #toast { left: 25%; } body.vr #toast2 { left: 75%; }
+  [hidden] { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/" } }
+</script>
+</head>
+<body>
+  <div id="menu" class="panel">
+    <h1>Alpine Lake VR</h1>
+    <p class="sub">Walk a mountain lake, in your phone headset</p>
+    <button id="play" disabled>Play</button>
+    <button id="vr" disabled>VR Mode</button>
+    <button id="openSettings" disabled>Settings</button>
+    <p id="status"></p>
+  </div>
+
+  <div id="settings" class="panel" hidden>
+    <h1>Settings</h1>
+    <label>Graphics quality
+      <select id="setQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+    </label>
+    <p class="note">Changing quality reloads the page.</p>
+    <label>Mute sound <input type="checkbox" id="setMute"></label>
+    <p class="note">No sound on iPhone? Check the silent switch on the side of the phone.</p>
+    <label class="row">Walk speed <span id="setSpeedVal"></span><input type="range" id="setSpeed" min="2" max="12" step="1"></label>
+    <label class="row">VR eye distance (IPD) <span id="setIpdVal"></span><input type="range" id="setIpd" min="50" max="75" step="1"></label>
+    <label class="row">VR field of view <span id="setFovVal"></span><input type="range" id="setFov" min="60" max="100" step="1"></label>
+    <label>Show FPS <input type="checkbox" id="setFps"></label>
+    <button id="back">Back</button>
+  </div>
+
+  <div id="hud" hidden>
+    <button id="exit" aria-label="Menu">✕</button>
+    <button id="mute" aria-label="Mute">🔊</button>
+    <button id="walk">Hold to walk</button>
+    <div id="fps"></div>
+  </div>
+  <div id="divider"></div>
+  <div id="rotate">Turn your phone sideways (landscape) for VR mode</div>
+  <div id="toast"></div><div id="toast2"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
