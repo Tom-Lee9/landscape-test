@@ -92,7 +92,6 @@ function toMenu() {
 }
 // ---------- book ----------
 function bookStatus() { $('bookName').textContent = '📖 ' + book.name + ' (' + book.pdf.numPages + ' pages, on page ' + book.focus + ')'; }
-$('loadBook').onclick = () => $('bookFile').click();
 $('bookFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   $('bookName').textContent = 'Opening ' + f.name + '…';

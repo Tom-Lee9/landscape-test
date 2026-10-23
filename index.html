@@ -23,6 +23,9 @@
     background: rgba(255,255,255,0.14); font-size: 18px; }
   .panel button:first-of-type { background: #e9f1f5; color: #10202a; font-weight: 600; }
   .panel button:disabled { opacity: 0.4; }
+  .panel .btn { position: relative; display: block; margin: 10px 0; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.14); font-size: 18px; cursor: pointer; justify-content: center; }
+  /* the real file input covers the label (invisible) so a tap on it opens the iPhone file picker directly */
+  #bookFile { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
   #status { min-height: 1.4em; font-size: 13px; opacity: 0.8; margin: 8px 0 0; }
   label { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 14px 0; text-align: left; font-size: 15px; }
   input[type=range] { width: 100%; }
@@ -68,8 +71,7 @@
     <button id="play" disabled>Play</button>
     <button id="vr" disabled>VR Mode</button>
     <button id="openSettings" disabled>Settings</button>
-    <button id="loadBook" disabled>Load book (PDF)</button>
-    <input type="file" id="bookFile" accept="application/pdf,.pdf" hidden>
+    <label id="loadBook" class="btn">Load book (PDF)<input type="file" id="bookFile" accept="application/pdf,.pdf"></label>
     <p id="bookName" class="note" style="text-align:center"></p>
     <p id="status"></p>
   </div>
