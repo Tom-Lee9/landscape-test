@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildWorld } from './world.js';
 import { Gyro } from './vr.js';
 import { Ambience } from './audio.js';
+import { Book } from './book.js';
 
 const $ = id => document.getElementById(id);
 const KEY = 'vr-mountains-settings';
@@ -33,11 +34,12 @@ scene.add(head);
 const cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.5, 20000);
 const eyeL = new THREE.PerspectiveCamera(S.fov, 1, 0.5, 20000), eyeR = eyeL.clone();
 head.add(cam, eyeL, eyeR);
+const book = new Book(scene);
 
 const gyro = new Gyro();
 const audio = new Ambience(S.muted);
 let world = null, mode = 'menu';             // 'menu' | 'play' | 'vr'
-let yaw = 0, pitch = 0, yawOffset = 0, needCenter = true, walkHeld = false, drag = null, frame = 0;
+let yaw = 0, pitch = 0, yawOffset = 0, needCenter = true, walkHeld = false, drag = null, frame = 0, tapAt = 0, holdTimer = 0;
 const keys = {}, pos = new THREE.Vector3(), qG = new THREE.Quaternion(), qYaw = new THREE.Quaternion();
 const Y = new THREE.Vector3(0, 1, 0), fwd = new THREE.Vector3(), right = new THREE.Vector3(), tmp = new THREE.Vector3(), eu = new THREE.Euler();
 const yawOf = q => eu.setFromQuaternion(q, 'YXZ').y;
@@ -53,6 +55,7 @@ setTimeout(() => {
   $('status').textContent = secure ? '' : 'Heads up: phone motion sensors only work over https (e.g. GitHub Pages).';
   document.querySelectorAll('#menu button').forEach(b => b.disabled = false);
   renderer.setAnimationLoop(loop);
+  book.restore().then(ok => ok && bookStatus()).catch(() => {});
   if (location.hash === "#play" || location.hash === "#vr") start(location.hash === "#vr");   // shortcut for testing
 }, 30);
 
@@ -87,6 +90,26 @@ function toMenu() {
   try { document.fullscreenElement && document.exitFullscreen(); } catch (e) {}
   onResize();
 }
+// ---------- book ----------
+function bookStatus() { $('bookName').textContent = '📖 ' + book.name + ' (' + book.pdf.numPages + ' pages, on page ' + book.focus + ')'; }
+$('loadBook').onclick = () => $('bookFile').click();
+$('bookFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('bookName').textContent = 'Opening ' + f.name + '…';
+  try { await book.load(f); bookStatus(); } catch (err) { $('bookName').textContent = "Couldn't open that PDF."; }
+  e.target.value = '';
+};
+function toggleBook() {
+  if (!book.loaded) { toast('Load a book from the menu first.'); return; }
+  if (book.isOpen) { book.close(); document.body.classList.remove('reading'); return; }
+  book.open(yawOf(head.quaternion)); document.body.classList.add('reading');
+  toast(mode === 'vr' ? 'Tap: next page (look at the left page + tap to go back). Two-finger tap: zoom. Hold: walk.' : 'Use ◀ ▶ to turn pages and 🔍 to zoom in.');
+}
+const zoomBook = () => book.setZoom(!book.zoom, yawOf(head.quaternion));
+$('bookBtn').onclick = toggleBook;
+$('pagePrev').onclick = () => book.turnPage(-1);
+$('pageNext').onclick = () => book.turnPage(1);
+$('pageZoom').onclick = zoomBook;
 function setMuted(m) { S.muted = m; save(); audio.setMuted(m); $('mute').textContent = m ? '🔇' : '🔊'; $('setMute').checked = m; }
 
 $('play').onclick = () => start(false);
@@ -123,16 +146,22 @@ function faceLake() {
 cv.addEventListener('touchstart', e => {
   e.preventDefault();
   if (mode === 'menu') return;
-  if (e.touches.length >= 2) { walkHeld = false; drag = null; faceLake(); return; }
+  if (e.touches.length >= 2) { clearTimeout(holdTimer); tapAt = 0; walkHeld = false; drag = null; book.isOpen ? zoomBook() : faceLake(); return; }
   const t = e.touches[0];
-  if (mode === 'vr') walkHeld = true; else drag = { x: t.clientX, y: t.clientY };
+  if (mode === 'vr' && book.isOpen) { tapAt = performance.now(); holdTimer = setTimeout(() => { walkHeld = true; tapAt = 0; }, 300); }
+  else if (mode === 'vr') walkHeld = true; else drag = { x: t.clientX, y: t.clientY };
 }, { passive: false });
 cv.addEventListener('touchmove', e => {
   e.preventDefault();
   if (!drag) return;
   const t = e.touches[0]; look(t.clientX - drag.x, t.clientY - drag.y); drag = { x: t.clientX, y: t.clientY };
 }, { passive: false });
-cv.addEventListener('touchend', e => { if (e.touches.length === 0) { walkHeld = false; drag = null; } });
+cv.addEventListener('touchend', e => {
+  if (e.touches.length) return;
+  clearTimeout(holdTimer);
+  if (tapAt && book.isOpen) book.turnPage(book.lookSide(head) < (book.zoom ? -0.35 : -0.02) ? -1 : 1);   // quick tap in VR = turn page
+  tapAt = 0; walkHeld = false; drag = null;
+});
 cv.addEventListener('mousedown', e => { if (mode !== 'menu') drag = { x: e.clientX, y: e.clientY }; });
 addEventListener('mousemove', e => { if (drag && !e.touches) { look(e.clientX - drag.x, e.clientY - drag.y); drag = { x: e.clientX, y: e.clientY }; } });
 addEventListener('mouseup', () => { drag = null; });
@@ -144,6 +173,10 @@ addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Escape' && mode !== 'menu') toMenu();
   if (e.code === 'KeyM') setMuted(!S.muted);
+  if (mode !== 'menu' && e.code === 'KeyB') toggleBook();
+  if (book.isOpen && e.code === 'KeyZ') zoomBook();
+  if (book.isOpen && e.code === 'BracketRight') book.turnPage(1);
+  if (book.isOpen && e.code === 'BracketLeft') book.turnPage(-1);
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -224,6 +257,7 @@ function loop() {
   updateLook(dt);
   move(dt);
   world.update(dt, head.position, frame);
+  book.update(dt, head.position);
   updateAudio(dt);
   render();
   perf(dt);

@@ -36,7 +36,12 @@
   #hud #walk { width: auto; height: auto; border-radius: 40px; padding: 18px 26px; font-size: 17px;
     bottom: calc(24px + env(safe-area-inset-bottom)); right: calc(24px + env(safe-area-inset-right)); background: rgba(0,0,0,0.4); }
   #fps { position: fixed; z-index: 5; top: 18px; left: 50%; transform: translateX(-50%); font: 12px monospace; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; }
+  #bookBtn { top: calc(64px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); }
+  #bookBar { display: none; position: fixed; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom)); gap: 12px; }
+  body.reading #bookBar { display: flex; } body.vr #bookBar { display: none !important; }
+  #hud #bookBar button { position: static; width: 56px; height: 56px; }
   body.vr #walk { display: none; }
+  body.vr #bookBtn { top: calc(12px + env(safe-area-inset-top)); right: auto; left: calc(50% + 48px); width: 32px; height: 32px; font-size: 14px; opacity: 0.6; }
   body.vr #exit, body.vr #mute { width: 32px; height: 32px; font-size: 14px; opacity: 0.6; }
   body.vr #exit { left: calc(50% - 40px); } body.vr #mute { right: calc(50% - 40px); }
   #divider { display: none; position: fixed; z-index: 4; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #000; }
@@ -63,6 +68,9 @@
     <button id="play" disabled>Play</button>
     <button id="vr" disabled>VR Mode</button>
     <button id="openSettings" disabled>Settings</button>
+    <button id="loadBook" disabled>Load book (PDF)</button>
+    <input type="file" id="bookFile" accept="application/pdf,.pdf" hidden>
+    <p id="bookName" class="note" style="text-align:center"></p>
     <p id="status"></p>
   </div>
 
@@ -85,6 +93,8 @@
     <button id="exit" aria-label="Menu">✕</button>
     <button id="mute" aria-label="Mute">🔊</button>
     <button id="walk">Hold to walk</button>
+    <button id="bookBtn" aria-label="Book">📖</button>
+    <div id="bookBar"><button id="pagePrev">◀</button><button id="pageZoom">🔍</button><button id="pageNext">▶</button></div>
     <div id="fps"></div>
   </div>
   <div id="divider"></div>

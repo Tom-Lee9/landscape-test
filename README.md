@@ -19,6 +19,13 @@ It's a separate project from `vr-fishing`, and the two share no files.
 | Face the lake | | two-finger tap | |
 | Menu / mute | ✕ / 🔊 buttons | same (small, top middle) | Esc / M |
 
+## Reading a book
+1. In the menu tap **Load book (PDF)** and pick a PDF from Files. It stays on your phone and nothing is uploaded. The game remembers the book and your page.
+2. In-game, tap **📖** to open or close the book. It appears at lap height, so look down to read.
+3. **Play mode:** ◀ ▶ turn pages, 🔍 zooms into one big page. **VR:** tap for the next page, look at the left page and tap to go back, two-finger tap to zoom, hold to walk. **PC:** B for the book, [ and ] to turn pages, Z to zoom.
+- For real reading, use **zoom**. A full page at book size is too small to read clearly in a phone headset.
+- **Never upload a book PDF to the GitHub repo.** It's public, so anyone could download it. `.gitignore` blocks PDFs from being committed.
+
 ## Run it on the PC
 You need a local web server, because ES modules don't load from `file://`. Node is installed, so in this folder run:
 ```
@@ -50,6 +57,8 @@ iPhone Safari only gives motion sensors to **https** pages, so host it the same 
 - `js/world.js`: terrain, lake, trees, rocks, waterfalls, sky, clouds and the shaders
 - `js/vr.js`: phone orientation → head rotation
 - `js/audio.js`: generated ambient sound
+- `js/book.js`: PDF → 3D book (page textures, page turns, zoom, bookmark)
+- `lib/pdfjs/`: PDF.js 3.11.174 (Apache-2.0, Mozilla)
 - `lib/`: three.js r160 (MIT): `three.module.js`, `Water.js`, `Sky.js`, `BufferGeometryUtils.js`
 
 ## Asset credits
